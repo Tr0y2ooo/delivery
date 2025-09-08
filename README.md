@@ -1,4 +1,4 @@
-[網站]([https://rogerwutaiwan.github.io/index.html](https://tr0y2ooo.github.io/delivery/)
+[網站](https://tr0y2ooo.github.io/delivery/)
 
 - 遇到狀況可以點地址選擇要回報的狀況，在按後面的的複製按鈕會幫你組合好文字內容，原本的地址後面也會括號狀況
 - 導航按鈕被按過會變成綠色，最後點擊的按鈕會變成紅色，藍色是原來的樣式完全沒碰過就會保持藍色
