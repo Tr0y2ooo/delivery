@@ -269,8 +269,34 @@
             matches.forEach(item => {
               const match = item.match(/^([一-龥冰優]+)(\d+)$/);
               if (match) {
-                const flavor = match[1];
+                let flavor = match[1];
                 const count = parseInt(match[2]);
+
+				  // ⭐ 原味算鮮
+        if (flavor === '原') {
+          flavor = '鮮';
+        }
+        if (flavor === '冰原') {
+          flavor = '冰鮮';
+        }
+				  if (flavor === '燕麥') {
+          flavor = '堅';
+        }
+        if (flavor === '冰燕麥') {
+          flavor = '冰堅';
+        }
+				  if (flavor === '低脂') {
+          flavor = '低';
+        }
+				  if (flavor === '冰低脂') {
+          flavor = '冰低';
+        }
+				  if (flavor === '冰優原') {
+          flavor = '冰原優';
+        }
+				  if (flavor === '冰優莓') {
+          flavor = '冰莓優';
+        }
                 if (flavorCounts.hasOwnProperty(flavor)) {
                   flavorCounts[flavor] += count;
                   totalFlavors += count;
