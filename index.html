@@ -4,169 +4,219 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>嘉南羊乳配送資訊與統計</title>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      background-color: #000;
-      color: #fff;
-      margin: 0;
-      padding: 0;
+<style>
+  :root {
+    --primary-blue: #007BFF;
+    --success-green: #28a745;
+    --danger-red: #dc3545;
+    --info-cyan: #17a2b8;
+    --bg-black: #121212;
+    --card-bg: #1e1e1e;
+    --border-color: #333;
+  }
+
+  body {
+    font-family: "PingFang TC", "Microsoft JhengHei", sans-serif;
+    background-color: var(--bg-black);
+    color: #e0e0e0;
+    margin: 0;
+    padding-bottom: 50px;
+    line-height: 1.6;
+  }
+
+  /* 頁籤導覽列 */
+  #tabs {
+    display: flex;
+    justify-content: center;
+    background: #222;
+    padding: 10px;
+    position: sticky;
+    top: 0;
+    z-index: 1100;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+  }
+
+  #tabs button {
+    background: none;
+    border: none;
+    color: #888;
+    padding: 10px 20px;
+    font-size: 16px;
+    cursor: pointer;
+    transition: 0.3s;
+    border-bottom: 3px solid transparent;
+  }
+
+  #tabs button:hover { color: #fff; }
+  #tabs button:active { transform: scale(0.95); }
+  /* 可以在 JS 切換時增加一個 .active class 控制底色 */
+
+  h1, h2 {
+    text-align: center;
+    color: #fff;
+    margin: 25px 0;
+    font-weight: 600;
+  }
+
+  /* 檔案上傳區 */
+  #fileInput {
+    display: block;
+    margin: 20px auto;
+    padding: 12px;
+    background: var(--primary-blue);
+    color: white;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 4px 15px rgba(0, 123, 255, 0.3);
+  }
+
+  /* 地圖容器 */
+  #map {
+    height: 400px;
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+    border-radius: 12px;
+    border: 2px solid var(--border-color);
+    box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+  }
+
+  /* 表格樣式優化 */
+  table {
+    width: 95%;
+    max-width: 1200px;
+    margin: 20px auto;
+    border-collapse: separate;
+    border-spacing: 0;
+    background-color: var(--card-bg);
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.4);
+  }
+
+  th {
+    background-color: var(--primary-blue);
+    color: white;
+    padding: 15px 10px;
+    font-size: 15px;
+    text-transform: uppercase;
+    letter-spacing: 1px;
+  }
+
+  td {
+    border-bottom: 1px solid var(--border-color);
+    padding: 12px 8px;
+    text-align: center;
+    font-size: 14px;
+  }
+
+  tr:last-child td { border-bottom: none; }
+  tr:hover { background-color: #262626; }
+
+  /* 地址點擊效果 */
+  .clickable-address {
+    color: #66b2ff;
+    cursor: pointer;
+    text-decoration: underline;
+    font-weight: 500;
+  }
+
+  /* 按鈕通用樣式 */
+  button {
+    transition: all 0.2s ease;
+    border: none;
+    border-radius: 5px;
+    padding: 8px 15px;
+    font-weight: bold;
+    cursor: pointer;
+  }
+
+  .navigate-button { background-color: var(--primary-blue); color: white; }
+  .copy-button { background-color: var(--info-cyan); color: white; }
+  
+  button:hover {
+    filter: brightness(1.2);
+    transform: translateY(-1px);
+  }
+
+  /* 彈出選單 Action Menu */
+  .action-menu {
+    position: absolute;
+    background-color: #2c2c2c;
+    border: 1px solid #444;
+    border-radius: 10px;
+    padding: 10px;
+    z-index: 2000;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+    min-width: 120px;
+  }
+
+  .action-menu button {
+    display: block;
+    width: 100%;
+    margin: 6px 0;
+    text-align: center;
+    background-color: #444;
+    color: white;
+  }
+
+  /* 回報頁面專用 */
+  #reportPage textarea {
+    display: block;
+    margin: 20px auto;
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 15px;
+    border-radius: 8px;
+    font-size: 16px;
+  }
+
+  #reportPage button {
+    display: block;
+    margin: 0 auto 30px;
+    width: 90%;
+    max-width: 200px;
+    background: var(--success-green);
+    color: white;
+    padding: 12px;
+  }
+
+  /* 響應式微調 */
+  @media (max-width: 768px) {
+    table { width: 98%; font-size: 13px; }
+    th, td { padding: 8px 4px; }
+    .navigate-button, .copy-button {
+      padding: 6px 8px;
+      font-size: 12px;
     }
+    #map { height: 300px; }
+  }
 
-    h1 {
-      text-align: center;
-      margin-top: 20px;
-      color: #f9f9f9;
-    }
+  /* 口味統計表特殊配色 */
+  #flavorSummary table th {
+    background-color: #444;
+  }
 
-    #fileInput, #calculateButton {
-      display: block;
-      margin: 20px auto;
-      padding: 10px 20px;
-      font-size: 16px;
-      border-radius: 4px;
-      border: none;
-      cursor: pointer;
-    }
-
-    #fileInput {
-      background-color: #007BFF;
-      color: white;
-    }
-
-    #fileInput:hover {
-      background-color: #0056b3;
-    }
-
-    #calculateButton {
-      background-color: #28a745;
-      color: white;
-      display: none;
-    }
-
-    #calculateButton:hover {
-      background-color: #218838;
-    }
-
-    table {
-      width: 90%;
-      margin: 30px auto;
-      border-collapse: collapse;
-      background-color: black;
-      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.5);
-    }
-
-    th, td {
-      border: 1px solid #ddd;
-      padding: 10px;
-      text-align: center;
-    }
-
-    th {
-      background-color: #007BFF;
-      color: white;
-    }
-
-    td {
-      color: white;
-    }
-
-    button.copy-button {
-      background-color: #17a2b8;
-    }
-
-    button.copy-button:hover {
-      background-color: #138496;
-    }
-
-    .action-menu {
-      position: absolute;
-      background-color: #333;
-      border: 1px solid #888;
-      padding: 10px;
-      z-index: 1000;
-      border-radius: 8px;
-      box-shadow: 0 2px 10px rgba(255, 255, 255, 0.2);
-    }
-
-    .action-menu button {
-      display: block;
-      width: 100%;
-      margin: 5px 0;
-      background-color: #444;
-      color: white;
-      border: none;
-      cursor: pointer;
-      padding: 5px;
-    }
-
-    .action-menu button:hover {
-      background-color: #555;
-    }
-
-    @media (max-width: 768px) {
-      table {
-        font-size: 14px;
-      }
-
-      #fileInput, #calculateButton {
-        width: 80%;
-        font-size: 14px;
-      }
-    }
-
-    #flavorSummary {
-      width: 90%;
-      margin: 30px auto;
-    }
-
-    #flavorSummary h2 {
-      color: #f9f9f9;
-    }
-	.action-menu {
-  position: absolute;
-  background-color: #222;
-  border: 1px solid #444;
-  border-radius: 6px;
-  padding: 8px;
-  z-index: 1000;
-  box-shadow: 0 4px 8px rgba(0,0,0,0.7);
-}
-
-.action-menu button {
-  display: block;
-  width: 100%;
-  padding: 8px 12px;
-  margin: 4px 0;
-  font-size: 14px;
-  background-color: #444;
-  color: white;
+  .delete-button {
+  background-color: var(--danger-red);
   border: none;
-  border-radius: 4px;
-  text-align: left;
-  cursor: pointer;
-}
-
-.action-menu button:hover {
-  background-color: #666;
-}
-
-.navigate-button {
-  background-color: #007BFF;
   color: white;
-  border: none;
   padding: 6px 12px;
   border-radius: 4px;
   cursor: pointer;
+  font-size: 13px;
+  transition: 0.3s;
 }
 
-.navigate-button:hover {
-  background-color: #0056b3;
+.delete-button:hover {
+  background-color: #a71d2a; /* 更深一點的紅色 */
+  transform: scale(1.05);
 }
-
-
-  </style>
+</style>
   <!-- Leaflet CSS -->
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <!-- Leaflet JS -->
@@ -174,7 +224,15 @@
 
 </head>
 <body>
-<div id="flavorSummary"></div>
+  <div id="tabs">
+  <button onclick="switchTab('delivery')">配送畫面</button>
+  <button onclick="switchTab('report')">回報系統</button>
+</div>
+
+<div id="routeInfo" style="text-align:center; margin-top:10px; font-size:18px;"></div>
+
+<div id="deliveryPage">
+  <div id="flavorSummary"></div>
 <div id="map" style="height: 500px; width: 90%; margin: 30px auto; border: 1px solid #ccc;"></div>
 
   <h1>嘉南羊乳每日配送資訊與口味統計</h1>
@@ -193,12 +251,46 @@
     </thead>
     <tbody></tbody>
   </table>
+</div>
+
+<div id="reportPage" style="display:none;">
+  <h2>回報紀錄</h2>
+  <textarea id="customReport" placeholder="輸入突發狀況..." style="width:90%;height:80px;"></textarea>
+  <button onclick="submitCustomReport()">送出</button>
+
+  <table id="reportTable">
+    <thead>
+      <tr>
+        <th>時間</th>
+        <th>內容</th>
+        <th>操作</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+</div>
+
 
   <script>
+const firebaseConfig = {
+  apiKey: "AIzaSyDtxi90BFHyStaCnzN_NvbGpeGJJnzh1gM",
+  authDomain: "goatmilk-b08ad.firebaseapp.com",
+  projectId: "goatmilk-b08ad",
+  storageBucket: "goatmilk-b08ad.firebasestorage.app",
+  messagingSenderId: "332591071395",
+  appId: "1:332591071395:web:b6fd75588727ed2f64bf16",
+  measurementId: "G-8N5HDHYV6T"
+};
+
+firebase.initializeApp(firebaseConfig);
+const db = firebase.firestore();
+
+
     let rowsData = [];
     const actions = ['新戶拍照', '收到錢', '紙條拍照', '客戶沒喝', 'gps更新', '備註更新'];
 
     document.getElementById('fileInput').addEventListener('change', async (e) => {
+      
   const file = e.target.files[0];
   if (!file) return;
 
@@ -211,6 +303,15 @@
 
   const fileName = file.name;
   const dateMatch = fileName.match(/(\d{8})/); // 找出8位數字
+
+  const { route, segment, date } = parseFileName(file.name);
+
+const isToday = date === todayStr;
+
+document.getElementById('routeInfo').innerHTML = `
+  路線：${route}（${segment}）｜
+  日期：<span style="color:${isToday ? '#0f0' : 'red'}">${date}</span>
+`;
 
   if (!dateMatch) {
     alert('檔案名稱沒有日期格式 (YYYYMMDD)，請確認檔案是否正確呀，主人～');
@@ -231,6 +332,9 @@
   tbody.innerHTML = '';
 
   initLeafletMap();
+
+  const routeId = createRouteIfNotExist(route, segment, date);
+window.currentRouteId = routeId;
 
   rowsData.slice(3).forEach((row, index) => {
     const [address, note, flavor, sum, gps] = row;
@@ -393,29 +497,28 @@ actions.forEach(action => {
   const btn = document.createElement('button');
   btn.textContent = action;
   btn.onclick = () => {
-    if (action === 'gps更新') {
-      if (navigator.geolocation) {
-        navigator.geolocation.getCurrentPosition(position => {
-          const lat = position.coords.latitude.toFixed(6);
-          const lon = position.coords.longitude.toFixed(6);
-          const fullText = `${address} GPS: ${lat},${lon}`;
-          copyButton.setAttribute('data-clip', fullText);
-          cell.innerHTML = `${address} (${action})`;
-          menu.remove();
-          alert(`已複製文字: ${fullText}`);
-        }, () => {
-          alert('無法取得 GPS 位置');
-        });
-      } else {
-        alert('此裝置不支援 GPS');
-      }
-    } else {
-      const fullText = `${address}${action}`;
-      copyButton.setAttribute('data-clip', fullText);
-      cell.innerHTML = `${address} (${action})`;
-      menu.remove();
+  let reportText = "";
+
+  if (action === 'gps更新') {
+    if (navigator.geolocation) {
+      navigator.geolocation.getCurrentPosition(position => {
+        const lat = position.coords.latitude.toFixed(6);
+        const lon = position.coords.longitude.toFixed(6);
+        reportText = `${address} GPS: ${lat},${lon}`;
+
+        saveReportToFirebase(address, reportText);
+        alert(`已回報：${reportText}`);
+      });
     }
-  };
+  } else {
+    reportText = `${address} ${action}`;
+    saveReportToFirebase(address, reportText);
+    alert(`已回報：${reportText}`);
+  }
+
+  menu.remove();
+};
+
   menu.appendChild(btn);
 });
 
@@ -470,6 +573,186 @@ function addLeafletMarker(gps, label) {
     leafletMarkers.push(marker);
   }
 }
+
+function saveReportToFirebase(address, content) {
+  db.collection("reports").add({
+    address: address,
+    content: content,
+    time: firebase.firestore.Timestamp.fromDate(new Date())
+  });
+}
+
+function switchTab(tab) {
+  document.getElementById('deliveryPage').style.display = tab === 'delivery' ? 'block' : 'none';
+  document.getElementById('reportPage').style.display = tab === 'report' ? 'block' : 'none';
+
+  if (tab === 'report') {
+    loadReports();
+  }
+}
+
+function loadReports() {
+  const tbody = document.querySelector('#reportTable tbody');
+  if (!tbody) return;
+  tbody.innerHTML = '';
+
+  if (!window.currentRouteId) {
+    const tr = document.createElement('tr');
+    // 注意：因為現在有三欄，所以 colspan 也要改成 3
+    tr.innerHTML = `<td colspan="3">請先選擇或上傳路線</td>`;
+    tbody.appendChild(tr);
+    return;
+  }
+
+  db.collection("reports")
+    .where("routeId", "==", window.currentRouteId)
+    .orderBy("time", "desc")
+    .get()
+    .then(snapshot => {
+      if (snapshot.empty) {
+        const tr = document.createElement('tr');
+        tr.innerHTML = `<td colspan="3">目前沒有回報（系統正常運作✔）</td>`;
+        tbody.appendChild(tr);
+        return;
+      }
+
+      snapshot.forEach(doc => {
+        const data = doc.data();
+        const reportTime = data.time ? data.time.toDate() : new Date();
+        const docId = doc.id; // 這是 Firebase 自動產生的文件 ID
+
+        const tr = document.createElement('tr');
+        tr.innerHTML = `
+          <td>${reportTime.toLocaleString()}</td>
+          <td>${data.content}</td>
+          <td>
+            <button class="delete-button" 
+                    onclick="confirmDeleteReport('${docId}')" 
+                    style="background-color: #dc3545; color: white; border: none; padding: 5px 10px; border-radius: 4px; cursor: pointer;">
+              刪除
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+    })
+    .catch(err => {
+      console.error("讀取回報失敗：", err);
+    });
+}
+
+// 刪除防呆邏輯
+function confirmDeleteReport(docId) {
+  if (confirm("確定要刪除這筆回報嗎？刪掉就找不回來囉！")) {
+    db.collection("reports").doc(docId).delete()
+      .then(() => {
+        alert("刪除成功！");
+        loadReports(); // 重新整理列表
+      })
+      .catch(err => {
+        alert("刪除失敗：" + err);
+      });
+  }
+}
+
+function submitCustomReport() {
+  const text = document.getElementById('customReport').value;
+
+  if (!text) {
+    alert('請輸入內容');
+    return;
+  }
+
+  // 如果沒有 currentRouteId，就用一個手動輸入專用的 routeId
+  const routeId = window.currentRouteId || "manual_input";
+
+  db.collection("reports").add({
+    routeId: routeId,      // ⭐ 這裡加上 routeId
+    address: "手動輸入",
+    content: text,
+    time: firebase.firestore.Timestamp.fromDate(new Date())
+  })
+  .then(() => {
+    document.getElementById('customReport').value = '';
+    console.log("已成功存手動回報");
+    loadReports(); // 刷新回報列表
+  })
+  .catch(err => {
+    console.error("存手動回報失敗：", err);
+  });
+}
+
+
+function parseFileName(fileName) {
+  const routeMatch = fileName.match(/\((A\d+)\)/);
+  const segmentMatch = fileName.match(/\)(前|中|後)?－/);
+  const dateMatch = fileName.match(/(\d{8})/);
+
+  const route = routeMatch ? routeMatch[1] : '未知路線';
+  const segment = segmentMatch ? segmentMatch[1] || '全段' : '全段';
+  const date = dateMatch ? dateMatch[1] : '無日期';
+
+  return { route, segment, date };
+}
+
+function createRouteIfNotExist(route, segment, date) {
+  const routeId = `${route}_${date}_${segment}`;
+
+  db.collection("routes").doc(routeId).set({
+    route,
+    segment,
+    date,
+    createdAt: new Date()
+  }, { merge: true });
+
+  return routeId;
+}
+
+function saveReportToFirebase(address, content) {
+  if (!window.currentRouteId) {
+    alert("路線還沒設定好");
+    return; // 停掉，避免 undefined 傳到 Firebase
+  }
+
+  db.collection("reports").add({
+    routeId: window.currentRouteId,
+    address: address,
+    content: content,
+    time: firebase.firestore.Timestamp.fromDate(new Date())
+  })
+  .then(() => {
+    console.log("已成功存回報");
+    loadReports();
+  })
+  .catch(err => {
+    console.error("存回報失敗：", err);
+  });
+}
+
+
+
+function confirmDeleteReport(docId) {
+  // 防呆詢問視窗
+  const isConfirmed = confirm("確定要刪除這筆回報紀錄嗎？此動作無法復原喔！");
+  
+  if (isConfirmed) {
+    deleteReport(docId);
+  }
+}
+
+function deleteReport(docId) {
+  db.collection("reports").doc(docId).delete()
+  .then(() => {
+    console.log("回報紀錄已成功刪除！");
+    alert("已刪除該筆紀錄。");
+    loadReports(); // 重新整理列表
+  })
+  .catch((error) => {
+    console.error("刪除失敗：", error);
+    alert("刪除失敗，請稍後再試。");
+  });
+}
+
 
   </script>
 </body>
